@@ -23,7 +23,7 @@ from estimate_CI_from_pdf import estimate_CI_from_pdf
 
 
 def sim_fn(Tf1, batch_size=1, random_state=None):
-    """ This is the wrapper function for the simulation model.
+    """ This is a wrapper function for the simulation model.
     
     Parameters
     ----------
