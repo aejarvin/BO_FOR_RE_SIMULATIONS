@@ -59,7 +59,7 @@ def distance1(summary, observed):
 
     Returns
     -------
-    np.array of shape (m,)
+    distance as an np.array 
 
     """
     y = observed 
