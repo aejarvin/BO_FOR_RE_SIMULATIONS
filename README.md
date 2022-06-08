@@ -4,7 +4,7 @@ This repository contains the python files that have been created for exploring B
 
 The proof-of-principle cases are given in separate folders containing all the files, except the experimental data files, necessary to run the cases, as long as all the software depencies, listed below, are appropriately installed on the system. Some degree of repetition is present as same or similar functions are given in the separate folders, but this was considered to provide a clean way to provide example cases that do not depend on each other. 
 
-The work is related to a publication 'Bayesian approach for validation of runaway electron simulations' submitted to JOURNAL_NAME on DATE.
+The work is related to a publication 'Bayesian approach for validation of runaway electron simulations' submitted to JOURNAL_NAME on DATE and also available at ARXIV-LINK HERE.
 
 # Dependencies
 DREAM: https://github.com/chalmersplasmatheory/DREAM
