@@ -38,6 +38,9 @@ def sim_fn(Tf1, batch_size=1, random_state=None):
     """
     
     Tf1 = float(Tf1)
+    # N.B. The T_ne_data_JET95135.mat corresponds to experimental data from
+    # JET and is not given in this repository. However, it is possible 
+    # to create artificial density and temperature profiles to try the algorithm.
     file1 = run_CQ_fluid_simulation_uniform_RE(T_f=Tf1, nAr_frac=15, 
                                     walltime=5,
                                     filename='T_ne_data_JET95135.mat',
@@ -85,6 +88,9 @@ def get_model():
     prior=elfi.Prior('uniform', 1.0, 19, model=m, name='Tf1')
 
     # Load observed/measured data
+    # N.B. The IP_out.h5 corresponds to experimental data from
+    # JET and is not given in this repository. However, it is possible 
+    # to create artificial current evolution data to try the algorithm.
     exp_data = h5py.File('IP_out.h5','r')
     exp_datar = exp_data['IP_data']
     exp_d = np.array(exp_datar)
