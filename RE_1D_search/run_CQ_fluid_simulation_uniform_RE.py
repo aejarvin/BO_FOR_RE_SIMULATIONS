@@ -171,7 +171,7 @@ def run_CQ_fluid_simulation_uniform_RE(T_f=10, nAr_frac=15, walltime=5,
         # If time resolution increases beyond bounds, consider the simulation failed.  
         if nt > 1e4:
             break
-        # If the RE seed multiplier is reduced below 1e-10, consider the solution not to exist.
+        # If the RE seed multiplier is reduced below 1e-3, consider the solution not to exist.
         if Nre < 1.0e-3:
             break
         # Iterate the CQ simulation
