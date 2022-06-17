@@ -53,7 +53,7 @@ def sim_fn(Tf1, batch_size=1, random_state=None):
     return output
 
 def distance1(summary, observed):       
-    """Calculate an L1 norm between the simulated and observed plasma currents.
+    """Calculate the L1 norm between the simulated and observed plasma currents.
 
     Parameters
     ----------
