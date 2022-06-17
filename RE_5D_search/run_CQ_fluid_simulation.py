@@ -8,8 +8,7 @@ import matplotlib.pyplot as plt
 import h5py
 import os
 import scipy.stats as stats
-from sklearn.ensemble import RandomForestRegressor
-#import GPy
+
 
 # Add path to the DREAM python wrapper
 sys.path.append('../../DREAM/py')
@@ -40,9 +39,7 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
                             filename='../experimental_data/T_ne_data_JET95135.mat', 
                             nr=30, Nre=1e5, pMax_re=160, Np_re=160, Nxi_re=120, 
                             tMax_init=10e-3, nt_init=100, tMax=44.6e-3, nt=2000,
-                            nbr_saveSteps = int(1000), re_grid = False,
-                            inputfilename = '../sim_data_automatic/test1i.h5',
-                            outputfilename = '../sim_data_automatic/test1o.h5', 
+                            nbr_saveSteps = int(1000), re_grid = False, 
                             initoutfile = '../sim_data_automatic/init_out.h5',
                             CQfluidoutfile = '../sim_data_automatic/CQ_fluid_out.h5'):
 
@@ -76,31 +73,32 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
         beta:           Parameter for spatial RE-distribution
         nbr_saveSteps:  Number of time steps that are saved
         re_grid:        Flag for usage of RE grid
-        inputfilename:  Name of the CQ simulation input file
-        outputfilename: Name of the CQ simulation output file
+        initoutname:    Name of the output from the initialization simulation
+        CQfluidoutfile: Name of the output from the CQ fluid simulation  
     '''
+    # Import the experimental data
     data = sio.loadmat(filename)
     dNe = np.squeeze(data['dNe'])
     ne_profile = dNe[:,2]*1e19         # (m^-3) From experimental JET data
-    r = np.linspace(0,a/100,nr)     # (m) radial coordinates   
     r_exp = np.squeeze(dNe[:,0])- np.squeeze(dNe[0,0])
-    #n_re = np.array([(pow(beta, alpha)*pow((rs/max(r)),
-    #                (alpha-1))*np.exp(-beta*(rs/max(r)))) for rs in r])
+    
+    # Prepare the runaway seed profile
+    r = np.linspace(0,a/100,nr)     # (m) radial coordinates   
     n_re = stats.gamma.pdf(r, a=alpha, scale=1.0/beta)
     # In the case that the distribution approaches infinity at r -> 0,
     # use linear extrapolation towards r -> 0.
     if np.isinf(n_re[0])==True:
         n_re[0] = n_re[1] + r[1]*(n_re[1] - n_re[2])/(r[2] - r[1])
-        #n_re[0] = stats.gamma.pdf(0.0001, a=alpha, scale=1.0/beta)
     n_re = n_re/sum(n_re)
     n_rei = n_re                       # Initial profile
+    n_re = Nre*n_re                         # Final radial denstiy distribution of runaways
+    
     nAr = (nAr_frac*1e-2)*nAr0          # Amount of assimilated argon
     inverse_walltime = 1/(walltime*1e-3)    # (1/s)
-    n_re = Nre*n_re                         # Final radial denstiy distribution of runaways
-
+    
+    # Flags to use in adjusting the initial electric field and runaway seed multiplier
     current_ok = False
     plateau_current_ok = False
-    
     
     # Create DREAMSettings object
     ds=DREAMSettings()
@@ -115,12 +113,9 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
     ds.eqsys.n_re.setEceff(Runaways.COLLQTY_ECEFF_MODE_FULL)
 
     # Set temperature
-    if t_T_f == None:
-        ds.eqsys.T_cold.setPrescribedData(T_f, radius=r)
-        Tion = T_f
-    else:
-        ds.eqsys.T_cold.setPrescribedData(T_f[0,0], radius=r, times=t_T_f)
-        Tion = T_f[0,0]
+    ds.eqsys.T_cold.setPrescribedData(T_f, radius=r)
+    Tion = T_f
+   
     # Set ions
     ds.eqsys.n_i.addIon(name='D2', Z=1, T=Tion, iontype=Ions.IONS_DYNAMIC_FULLY_IONIZED, n=ne_profile, r=r_exp)
     ds.eqsys.n_i.addIon(name='Ar', Z=18, iontype=Ions.IONS_PRESCRIBED_NEUTRAL, n=nAr) 
@@ -139,8 +134,6 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
     
     # Set solver type
     ds.solver.setType(Solver.NONLINEAR)                       # Semi-implicit time stepping
-    #ds.solver.setVerbose(True)                               # Print info from Newton iterations
-
     ds.solver.setLinearSolver(3)
 
     # Include otherquantities to save to output
@@ -153,12 +146,9 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
     # Print progress
     ds.output.setTiming(stdout=True, file=True)
 
-    # Set file name of output file
-    # ds.output.setFilename(init_output_str)
     # This section of the code runs the initialization simulation.
     # The current_ok flag is used to iterate the initial electric field
     # to get the correct current.
-    
     while current_ok != True:
         if os.path.exists(initoutfile):
             os.remove(initoutfile)
@@ -173,34 +163,38 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
             ds.eqsys.E_field.setPrescribedData(E_init,radius=r)
         else:
             current_ok = True
-    currents = []
-    Nres = []
-    counter = 0
+    
+    
+    # This section of the code iterates the CQ simulation to adjust
+    # the runaway seed multiplier to get the correct plateau current.
     Flag_above = False
     Flag_below = False
+    counter = 0
     mult = 1000
-    Ip_prev = 0
     Nre_below = 0
     Nre_above = 0
     Ip_below = 0
     Ip_above = 0
+    # Print some information about the case when starting 
     print('Case ' + CQfluidoutfile + ' at temperature ' + str(T_f) + ' and walltime ' + str(walltime) + 
           ' starting')
     while plateau_current_ok != True:    
         timestepok = False
+        # Print information about the case every 10th iteration to diagnose the progress
         if counter%10 == 0:
             print('Case ' + CQfluidoutfile + ' at temperature ' + str(T_f) + ' counter ' + str(counter))
+         # If the RE seed multiplier is reduced below 1e-3, consider the solution not to exist.
         if Nre < 1.0e-3:
             break
+        # If time resolution increases beyond bounds, consider the simulation failed.
         if nt > 1e5:
             break
+        # Iterate the CQ simulation
         while timestepok == False:
+            # Initialize the DREAM settings
             ds1 = DREAMSettings(ds)
             ds1.fromOutput(initoutfile, ignore=['n_re', 'T_cold'])
-            if t_T_f == None:
-                ds1.eqsys.T_cold.setPrescribedData(T_f, radius=r)
-            else:
-                ds1.eqsys.T_cold.setPrescribedData(T_f, radius=r, times=t_T_f)
+            ds1.eqsys.T_cold.setPrescribedData(T_f, radius=r)
             ds1.eqsys.E_field.setType(Efield.TYPE_SELFCONSISTENT)
             ds1.eqsys.E_field.setBoundaryCondition(bctype = Efield.BC_TYPE_SELFCONSISTENT, 
                                                        inverse_wall_time = inverse_walltime,
@@ -221,6 +215,7 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
                 f = runiface(ds1, outfile = CQfluidoutfile, quiet = True)
                 current = f['eqsys']['I_p'][-1][0]
             except:
+                # Reduce time step if the simulation fails.
                 print('Reducing time step ', 'nt: ', nt, 'walltime: ', walltime)
                 current = 1.0
             try:
@@ -242,8 +237,12 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
             f.close()
                         
             step_size = 1.0
+            # Here the RE seed multiplier is adjusted to get the correct plateau current.
+            # If the diffence between the predicted and measured plateau current exceeds
+            # 1 kA, adjust Nre. The algorithm first multiplies or divides the Nre by the
+            # multiplier 1000. Once the predicted Ip_plateau crosses the measured value,
+            # binary search is used to converge to the target value.
             if abs(current - Ip) > 1e3 and timestepok == True:
-                #print('Current Ip: ', current, ' Target Ip: ', Ip, ' Nre: ', Nre, ' T_f: ', T_f, ' nAr_frac: ', nAr_frac)
                 if Flag_below == False or Flag_above == False:
                     if (current > Ip):
                         Nre_above = Nre
@@ -269,17 +268,18 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
                         Nre_below = Nre
                         Ip_below = current
                     Nre = 0.5*(Nre_above + Nre_below)
-                    #print('Nre: ', Nre)
                 n_re = Nre*n_rei
                 current_ok = False
                 counter = counter + 1
-                if Nre < 1.0:
+                if Nre < 1.0e-3:
                     break
             else:
                 if timestepok == True:
                     plateau_current_ok = True
             
     if re_grid:
+        # This section is kept in case kinetic simulations are needed. However
+        # this section is not used in these studies.
         ds1.solver.tolerance.set('j_re', abstol=1)
         ds1.runawaygrid.setEnabled(True)
         ds1.runawaygrid.setNxi(Nxi_re)
@@ -298,21 +298,13 @@ def run_CQ_fluid_simulation(T_f=10, t_T_f=None, nAr_frac=15, walltime=5,
         ds1.eqsys.f_re.setSynchrotronMode(DistFunc.SYNCHROTRON_MODE_INCLUDE)
     else:
         ds1.runawaygrid.setEnabled(False)
-    if t_T_f == None:
-        Tf_out = T_f
-    else:
-        Tf_out = T_f[0,0]
+    
+    Tf_out = T_f
+    # Print information that the case finished successfully
     print(' T_f: ', Tf_out , ' nAr_frac: ', nAr_frac, 'Alpha: ', alpha, 'Beta: ', beta, 'Walltime: ', walltime)
     print('Case ' + CQfluidoutfile + ' at temperature ' + str(T_f) + 
           ' finished successfully')
-    #ds.output.setFilename(outputfilename)
-    #ds.save(inputfilename)
     f = runiface(ds1, outfile = CQfluidoutfile, quiet = True)
     f.close()
     file1 = h5py.File(CQfluidoutfile,'r')
-    #timev = np.array(file1['grid']['t'][:])
-    #timev.reshape(len(timev),1)
-    #currentv = np.array(file1['eqsys']['I_p'][:])
-    #currentv.reshape(len(currentv),1)
-    #output = np.c_[timev,currentv]
     return file1
