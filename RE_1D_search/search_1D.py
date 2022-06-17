@@ -123,7 +123,7 @@ if __name__ == '__main__':
     # Get the ELFI model
     m = get_model()
 
-    # Take a logarithm of the discrepancy
+    # Take logarithm of the discrepancy
     log_d = elfi.Operation(np.log, m['d'])
 
     # Define the GPR kernel parameters
