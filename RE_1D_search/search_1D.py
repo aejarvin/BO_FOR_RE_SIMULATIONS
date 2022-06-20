@@ -5,11 +5,14 @@ import h5py
 import pickle
 import scipy.stats as stats
 import multiprocessing
+import sys
 
 # Bayesian inference and Gaussian Process packages
 import elfi
 import GPy
 from elfi.methods.bo.gpy_regression import GPyRegression
+
+sys.path.append('../common/')
 
 # Import the function that runs DREAM
 from run_CQ_fluid_simulation_uniform_RE import run_CQ_fluid_simulation_uniform_RE
