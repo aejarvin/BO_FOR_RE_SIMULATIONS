@@ -168,9 +168,19 @@ if __name__ == '__main__':
     # Setup the number of initialisation points. This the number to be sampled randomly
     # before applying the acquisition function.
     bolfi.n_initial_evidence=50
+    
+    # Collect the initialization points
+    iteration_accepted = False
+    while iteration_accepted == False:
+        try:
+            bolfi.fit(n_evidence=bolfi.n_initial_evidence)
+            iteration_accepted =True
+        except:
+            bolfi.batches.cancel_pending()
+            bolfi.batches._next_batch_index = batch_index+1
 
-    # Establish the initial evidence
-    bolfi.fit(n_evidence=n_initial_evidence)
+    # Save the initial evidence to a dictionary
+    save_bolfi(bolfi,fname='BOLFI_5D_initial_'+str(bolfi.n_initial_evidence)+'.pkl')
     
     # Fit the GPR
     inst = tmn.instance
