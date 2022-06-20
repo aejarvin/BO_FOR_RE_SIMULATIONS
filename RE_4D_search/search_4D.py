@@ -158,7 +158,7 @@ if __name__ == '__main__':
                         kernel=kernel, normalizer=True)
 
     # Setup BOLFI
-    bolfi = elfi.BOLFI(log_d, batch_size=1, initial_evidence=None, update_interval=1,
+    bolfi = elfi.BOLFI(log_d, batch_size=1, initial_evidence=result_dictionary, update_interval=1,
                        bounds=bounds_dict, acq_noise_var=0, target_model=tmn,
                        async_acq=True, batches_per_acquisition=1, max_parallel_batches=10)
 
