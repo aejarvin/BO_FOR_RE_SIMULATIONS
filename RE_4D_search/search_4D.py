@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
     # Collect samples in batches of 10
     for i in range(20):
-        if i > 0:
+        if i > 3:
             iteration_accepted = False
             print('i: ', i)
             while iteration_accepted == False:
