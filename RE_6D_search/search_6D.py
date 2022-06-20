@@ -1,5 +1,5 @@
 # Standard Python packages.
-import numpy 
+import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 import os
@@ -56,10 +56,10 @@ def sim_fn(Tf1, Tf2, tmin, nAr, alpha, beta, batch_size=1, random_state=None):
                                         initoutfile = 'bolfi_6D_runs/'+str(float(Tf1))+'init_out.h5',
                                         CQfluidoutfile = 'bolfi_6D_runs/'+str(float(Tf1))+'CQ_fluid_out.h5')
     
-    timev = numpy.array(file1['grid']['t'][:])
-    currentv = numpy.array(file1['eqsys']['I_p'][:])
-    currentv = numpy.squeeze(currentv)
-    output = numpy.array([numpy.transpose(timev),numpy.transpose(currentv)])
+    timev = np.array(file1['grid']['t'][:])
+    currentv = np.array(file1['eqsys']['I_p'][:])
+    currentv = np.squeeze(currentv)
+    output = np.array([np.transpose(timev),np.transpose(currentv)])
     return output
 
 def distance1(summary, observed):       
@@ -107,7 +107,7 @@ def get_model():
     # to create artificial current evolution data to try the algorithm.
     exp_data = h5py.File('../experimental_data/IP_out.h5','r')
     exp_datar = exp_data['IP_data']
-    exp_d = numpy.array(exp_datar)
+    exp_d = np.array(exp_datar)
     
     # Define the ELFI simulator. Here ELFI links to the wrapper
     # function defined above.
