@@ -6,6 +6,7 @@ import pickle
 import scipy.stats as stats
 from scipy.optimize import differential_evolution
 import multiprocessing
+import sys
 
 # Python packages for Bayesian inference and GPR
 import elfi
@@ -14,6 +15,8 @@ from elfi.methods.bo.gpy_regression import GPyRegression
 from elfi.methods.bo.acquisition import RandMaxVar
 from elfi.methods.bo.acquisition import LCBSC
 from elfi.model.extensions import ModelPrior
+
+sys.path.append('../common/')
 
 # Import the function that runs DREAM
 from run_CQ_fluid_simulation_vTf import run_CQ_fluid_simulation_vTf
