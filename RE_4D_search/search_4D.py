@@ -5,6 +5,7 @@ import h5py
 import pickle
 import scipy.stats as stats
 import multiprocessing
+import sys
 
 # Python packages for Bayesian inference and GPR
 import elfi
@@ -12,6 +13,8 @@ import GPy
 from elfi.methods.bo.gpy_regression import GPyRegression
 from elfi.methods.bo.acquisition import RandMaxVar
 from elfi.model.extensions import ModelPrior
+
+sys.path.append('../common/')
 
 # Import the function that runs DREAM
 from run_CQ_fluid_simulation import run_CQ_fluid_simulation
