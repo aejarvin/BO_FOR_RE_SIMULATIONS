@@ -241,14 +241,14 @@ def run_CQ_fluid_simulation_vTf(Tf1=10, Tf2=5, t_T_f=17.5, nAr_frac=15, walltime
             if current == 1.0:
                 nt = nt*1.2
                 ds1.timestep.setNt(nt)
-                tvec = np.linspace(0,tmax,nt)
+                tvec = np.linspace(0,tMax,nt)
                 Tf = []
                 for i in tvec:
-                    if i < tmin:
+                    if i < t_T_f:
                         tvalue = Tf1 - (i/t_T_f)*(Tf1 - Tf2)
                     else:
                         tvalue = Tf2
-                Tf.append(np.linspace(tvalue,tvalue,nr))
+                    Tf.append(np.linspace(tvalue,tvalue,nr))
                 Tf = np.array(Tf)
                 t_Tf = np.array(tvec)
                 Nre = Nre*0.1
