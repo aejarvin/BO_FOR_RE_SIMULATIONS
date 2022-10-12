@@ -176,8 +176,8 @@ if __name__ == '__main__':
             bolfi.fit(n_evidence=bolfi.n_initial_evidence)
             iteration_accepted =True
         except:
-            bolfi.batches.cancel_pending()
-            bolfi.batches._next_batch_index = batch_index+1
+            print('Exception in initialization!')
+            bolfi.batches.reset()
 
     # Save the initial evidence to a dictionary
     save_bolfi(bolfi,fname='BOLFI_5D_initial_'+str(bolfi.n_initial_evidence)+'.pkl')
